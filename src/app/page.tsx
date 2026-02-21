@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <div className="max-w-5xl mx-auto px-4">
@@ -13,12 +15,12 @@ export default function HomePage() {
           and hope you just look at the monthly payment. We reverse-engineer
           their math and tell you exactly what to push back on.
         </p>
-        <a
+        <Link
           href="/analyze"
           className="inline-block py-3 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-colors text-lg"
         >
           Analyze My Lease Quote
-        </a>
+        </Link>
       </section>
 
       {/* How it works */}
@@ -108,12 +110,12 @@ export default function HomePage() {
           Don&apos;t sign until you check.
         </h2>
         <p className="text-gray-400 mb-6">Free. Instant. No account needed.</p>
-        <a
+        <Link
           href="/analyze"
           className="inline-block py-3 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-colors text-lg"
         >
           Analyze My Lease Quote
-        </a>
+        </Link>
       </section>
 
       {/* Footer */}
