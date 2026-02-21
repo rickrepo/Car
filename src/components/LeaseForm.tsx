@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LeaseInput, FeeItem } from "@/types/lease";
+import { LeaseInput, FeeItem, PaymentFrequency } from "@/types/lease";
 import { COMMON_FEES } from "@/lib/fee-database";
 
 interface Props {
@@ -11,19 +11,22 @@ interface Props {
 const TOOLTIPS: Record<string, string> = {
   msrp: "The Manufacturer's Suggested Retail Price — the sticker price on the window.",
   sellingPrice:
-    'The negotiated price of the vehicle BEFORE any down payment, trade-in, or rebates. Sometimes labeled "Agreed Upon Value" or "Capitalized Cost" on the lease sheet.',
+    'The negotiated vehicle price BEFORE any down payment, trade-in, or rebates. On your paperwork this may be called "Lease Vehicle Amount," "Agreed Upon Value," or "Capitalized Cost."',
   downPayment:
     'Cash you\'re putting down. Also called "Cap Cost Reduction." WARNING: On a lease, if the car is totaled, you lose this money.',
-  tradeInValue: "The amount the dealer is giving you for your trade-in vehicle.",
+  tradeInValue:
+    "The amount the dealer is giving you for your trade-in vehicle.",
   rebates:
     "Manufacturer incentives, loyalty bonuses, or lease cash being applied. Check the manufacturer's website to confirm what's available.",
-  monthlyPayment: "The monthly payment the dealer is quoting you, BEFORE tax.",
-  dueAtSigning:
-    'Total amount due at signing (first month, fees, down payment, etc.). Sometimes called "due at inception" or "drive-off."',
-  leaseTerm: "Length of the lease in months. 36 months is most common.",
+  paymentAmount:
+    "The payment amount the dealer is quoting you (pre-tax), at your selected frequency.",
+  dueOnDelivery:
+    'Total amount due upfront when you pick up the vehicle — first payment, fees, down payment, etc. Sometimes called "Due at Signing" or "Due on Delivery."',
+  leaseTerm: "Length of the lease in months. 36 or 48 months are most common.",
   residualValue:
-    'What the car will be worth at lease end, in dollars. This is on your lease paperwork — look for "Residual Value" or "Purchase Option Price at End of Lease."',
-  annualMileage: "The annual mileage allowance in the lease. 10K, 12K, or 15K are standard.",
+    'What the car will be worth at lease end, in dollars. Look for "Residual Value," "Guaranteed Future Value," or "Purchase Option Price at End of Lease" on your paperwork.',
+  annualKm:
+    "The annual kilometre allowance in the lease. Going over costs extra — typically 8-20¢/km.",
 };
 
 function Tooltip({ text }: { text: string }) {
@@ -101,11 +104,13 @@ export default function LeaseForm({ onAnalyze }: Props) {
   const [downPayment, setDownPayment] = useState("0");
   const [tradeInValue, setTradeInValue] = useState("0");
   const [rebates, setRebates] = useState("0");
-  const [monthlyPayment, setMonthlyPayment] = useState("");
-  const [dueAtSigning, setDueAtSigning] = useState("0");
-  const [leaseTerm, setLeaseTerm] = useState("36");
+  const [paymentFrequency, setPaymentFrequency] =
+    useState<PaymentFrequency>("biweekly");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [dueOnDelivery, setDueOnDelivery] = useState("0");
+  const [leaseTerm, setLeaseTerm] = useState("48");
   const [residualValue, setResidualValue] = useState("");
-  const [annualMileage, setAnnualMileage] = useState("12000");
+  const [annualKm, setAnnualKm] = useState("20000");
   const [fees, setFees] = useState<{ name: string; amount: string }[]>([]);
   const [showFeeDropdown, setShowFeeDropdown] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -133,15 +138,15 @@ export default function LeaseForm({ onAnalyze }: Props) {
 
     const parsedMsrp = parseFloat(msrp);
     const parsedSelling = parseFloat(sellingPrice);
-    const parsedPayment = parseFloat(monthlyPayment);
+    const parsedPayment = parseFloat(paymentAmount);
     const parsedResidual = parseFloat(residualValue);
     const parsedTerm = parseInt(leaseTerm);
 
     if (!parsedMsrp || parsedMsrp <= 0) errs.push("MSRP is required.");
     if (!parsedSelling || parsedSelling <= 0)
-      errs.push("Selling price is required.");
+      errs.push("Negotiated price is required.");
     if (!parsedPayment || parsedPayment <= 0)
-      errs.push("Monthly payment is required.");
+      errs.push("Payment amount is required.");
     if (!parsedResidual || parsedResidual <= 0)
       errs.push("Residual value is required.");
     if (!parsedTerm || parsedTerm <= 0) errs.push("Lease term is required.");
@@ -167,11 +172,12 @@ export default function LeaseForm({ onAnalyze }: Props) {
       tradeInValue: parseFloat(tradeInValue) || 0,
       rebates: parseFloat(rebates) || 0,
       fees: parsedFees,
-      monthlyPayment: parsedPayment,
+      paymentFrequency,
+      paymentAmount: parsedPayment,
       leaseTerm: parsedTerm,
       residualValue: parsedResidual,
-      annualMileage: parseInt(annualMileage) || 12000,
-      dueAtSigning: parseFloat(dueAtSigning) || 0,
+      annualKm: parseInt(annualKm) || 20000,
+      dueOnDelivery: parseFloat(dueOnDelivery) || 0,
     };
 
     onAnalyze(input);
@@ -181,9 +187,12 @@ export default function LeaseForm({ onAnalyze }: Props) {
     (f) => !fees.find((existing) => existing.name === f)
   );
 
+  const paymentLabel =
+    paymentFrequency === "biweekly" ? "Biweekly Payment" : "Monthly Payment";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Vehicle Info */}
+      {/* Vehicle Pricing */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
@@ -197,28 +206,31 @@ export default function LeaseForm({ onAnalyze }: Props) {
             tooltip={TOOLTIPS.msrp}
             value={msrp}
             onChange={setMsrp}
-            placeholder="40,000"
+            placeholder="50,000"
             required
           />
           <NumberInput
-            label="Selling Price"
+            label="Negotiated Price"
             tooltip={TOOLTIPS.sellingPrice}
             value={sellingPrice}
             onChange={setSellingPrice}
-            placeholder="37,000"
+            placeholder="46,000"
             required
           />
         </div>
       </section>
 
-      {/* Adjustments */}
+      {/* Cap Cost Reductions */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
             2
           </span>
-          Adjustments
+          Cap Cost Reductions
         </h3>
+        <p className="text-sm text-gray-400 mb-3">
+          Anything that reduces the amount being financed.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <NumberInput
             label="Down Payment"
@@ -253,7 +265,8 @@ export default function LeaseForm({ onAnalyze }: Props) {
           Fees on the Quote
         </h3>
         <p className="text-sm text-gray-400 mb-3">
-          Add any fees listed on your lease quote. We&apos;ll flag the junk ones.
+          Add any fees listed on your lease quote. We&apos;ll flag the junk
+          ones.
         </p>
 
         {fees.map((fee, i) => (
@@ -329,19 +342,50 @@ export default function LeaseForm({ onAnalyze }: Props) {
           Lease Terms
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Payment frequency toggle */}
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Payment Frequency
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentFrequency("biweekly")}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  paymentFrequency === "biweekly"
+                    ? "bg-emerald-500 text-black"
+                    : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700"
+                }`}
+              >
+                Biweekly
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentFrequency("monthly")}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  paymentFrequency === "monthly"
+                    ? "bg-emerald-500 text-black"
+                    : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700"
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+          </div>
+
           <NumberInput
-            label="Monthly Payment (pre-tax)"
-            tooltip={TOOLTIPS.monthlyPayment}
-            value={monthlyPayment}
-            onChange={setMonthlyPayment}
-            placeholder="450"
+            label={`${paymentLabel} (pre-tax)`}
+            tooltip={TOOLTIPS.paymentAmount}
+            value={paymentAmount}
+            onChange={setPaymentAmount}
+            placeholder={paymentFrequency === "biweekly" ? "210" : "450"}
             required
           />
           <NumberInput
-            label="Due at Signing (total)"
-            tooltip={TOOLTIPS.dueAtSigning}
-            value={dueAtSigning}
-            onChange={setDueAtSigning}
+            label="Amount Due on Delivery"
+            tooltip={TOOLTIPS.dueOnDelivery}
+            value={dueOnDelivery}
+            onChange={setDueOnDelivery}
             placeholder="2,000"
           />
           <div>
@@ -362,6 +406,7 @@ export default function LeaseForm({ onAnalyze }: Props) {
               <option value="39">39 months</option>
               <option value="42">42 months</option>
               <option value="48">48 months</option>
+              <option value="60">60 months</option>
             </select>
           </div>
           <NumberInput
@@ -374,18 +419,18 @@ export default function LeaseForm({ onAnalyze }: Props) {
           />
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Annual Mileage
-              <Tooltip text={TOOLTIPS.annualMileage} />
+              Annual Kilometre Allowance
+              <Tooltip text={TOOLTIPS.annualKm} />
             </label>
             <select
-              value={annualMileage}
-              onChange={(e) => setAnnualMileage(e.target.value)}
+              value={annualKm}
+              onChange={(e) => setAnnualKm(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
-              <option value="7500">7,500 miles/year</option>
-              <option value="10000">10,000 miles/year</option>
-              <option value="12000">12,000 miles/year</option>
-              <option value="15000">15,000 miles/year</option>
+              <option value="16000">16,000 km/year</option>
+              <option value="18000">18,000 km/year</option>
+              <option value="20000">20,000 km/year</option>
+              <option value="24000">24,000 km/year</option>
             </select>
           </div>
         </div>

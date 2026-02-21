@@ -1,3 +1,5 @@
+export type PaymentFrequency = "monthly" | "biweekly";
+
 export interface LeaseInput {
   // Vehicle
   msrp: number;
@@ -12,13 +14,14 @@ export interface LeaseInput {
   fees: FeeItem[];
 
   // Lease terms
-  monthlyPayment: number; // What the dealer quoted
+  paymentFrequency: PaymentFrequency;
+  paymentAmount: number; // What the dealer quoted (per period)
   leaseTerm: number; // months
   residualValue: number; // dollar amount
-  annualMileage: number;
+  annualKm: number; // annual kilometre allowance
 
-  // Due at signing (total out-of-pocket at signing)
-  dueAtSigning: number;
+  // Amount due on delivery (total out-of-pocket upfront)
+  dueOnDelivery: number;
 }
 
 export interface FeeItem {
@@ -27,13 +30,17 @@ export interface FeeItem {
 }
 
 export interface LeaseAnalysis {
-  // Computed values
+  // Input context
+  paymentFrequency: PaymentFrequency;
+  dueOnDelivery: number;
+
+  // Computed values (all internally monthly)
   grossCapCost: number;
   adjustedCapCost: number;
   depreciation: number;
-  depreciationPayment: number;
-  rentCharge: number;
-  calculatedPayment: number;
+  depreciationPayment: number; // monthly
+  rentCharge: number; // monthly
+  calculatedPayment: number; // monthly
   moneyFactor: number;
   apr: number;
   residualPercent: number;
@@ -42,8 +49,14 @@ export interface LeaseAnalysis {
   onePercentRule: number; // monthly payment as % of MSRP
   sellingPriceDiscount: number; // % below MSRP
 
+  // Per-period display values (converted to user's chosen frequency)
+  perPeriodDepreciation: number;
+  perPeriodRentCharge: number;
+  perPeriodCalculatedPayment: number;
+  perPeriodEffectiveCost: number;
+
   // Payment discrepancy
-  paymentDifference: number; // dealer quote vs our math
+  paymentDifference: number; // dealer quote vs our math (in per-period amount)
   hasPaymentDiscrepancy: boolean;
 
   // Fee analysis
@@ -61,7 +74,7 @@ export interface LeaseAnalysis {
   tips: NegotiationTip[];
 
   // Potential savings
-  potentialSavingsMonthly: number;
+  potentialSavingsPerPeriod: number;
   potentialSavingsTotal: number;
 }
 

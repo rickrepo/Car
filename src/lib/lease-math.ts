@@ -1,7 +1,33 @@
-import { LeaseInput, LeaseAnalysis } from "@/types/lease";
+import { LeaseInput, LeaseAnalysis, PaymentFrequency } from "@/types/lease";
 import { analyzeFees } from "./fee-database";
 import { gradeDeal } from "./deal-grader";
 import { generateTips } from "./negotiation-engine";
+
+/**
+ * Convert a per-period payment to monthly equivalent.
+ * Biweekly: 26 payments/year → monthly = biweekly × 26 / 12
+ */
+function toMonthly(amount: number, freq: PaymentFrequency): number {
+  return freq === "biweekly" ? (amount * 26) / 12 : amount;
+}
+
+/**
+ * Convert a monthly amount to the user's chosen payment frequency.
+ * Monthly → biweekly: monthly × 12 / 26
+ */
+function toPerPeriod(monthly: number, freq: PaymentFrequency): number {
+  return freq === "biweekly" ? (monthly * 12) / 26 : monthly;
+}
+
+/**
+ * Get the total number of payments over the lease term.
+ */
+function totalPayments(termMonths: number, freq: PaymentFrequency): number {
+  if (freq === "biweekly") {
+    return Math.round((termMonths / 12) * 26);
+  }
+  return termMonths;
+}
 
 /**
  * Core lease calculation engine.
@@ -34,8 +60,11 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
   // Monthly depreciation payment
   const depreciationPayment = depreciation / input.leaseTerm;
 
+  // Convert user's quoted payment to monthly for internal math
+  const monthlyPayment = toMonthly(input.paymentAmount, input.paymentFrequency);
+
   // Reverse-engineer the rent charge (finance charge) from the dealer's quoted payment
-  const rentCharge = input.monthlyPayment - depreciationPayment;
+  const rentCharge = monthlyPayment - depreciationPayment;
 
   // Reverse-engineer the money factor
   const moneyFactor =
@@ -60,24 +89,39 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
       : 0;
 
   // 1% rule: monthly payment as percentage of MSRP (with $0 down normalization)
-  // To fairly apply the 1% rule, we need to normalize out any down payment
   const effectiveMonthlyWithoutDown =
     input.downPayment > 0
-      ? input.monthlyPayment + input.downPayment / input.leaseTerm
-      : input.monthlyPayment;
+      ? monthlyPayment + input.downPayment / input.leaseTerm
+      : monthlyPayment;
   const onePercentRule =
     input.msrp > 0 ? (effectiveMonthlyWithoutDown / input.msrp) * 100 : 0;
 
   // Total cost of the lease
+  const numPayments = totalPayments(input.leaseTerm, input.paymentFrequency);
   const totalLeaseCost =
-    input.monthlyPayment * input.leaseTerm + input.dueAtSigning;
+    input.paymentAmount * numPayments + input.dueOnDelivery;
 
   // Effective monthly cost (normalizes everything)
   const effectiveMonthlyCost = totalLeaseCost / input.leaseTerm;
 
-  // Payment discrepancy check
-  const paymentDifference = Math.abs(input.monthlyPayment - calculatedPayment);
+  // Payment discrepancy check (compare in per-period amounts)
+  const perPeriodCalculated = toPerPeriod(
+    calculatedPayment,
+    input.paymentFrequency
+  );
+  const paymentDifference = Math.abs(input.paymentAmount - perPeriodCalculated);
   const hasPaymentDiscrepancy = paymentDifference > 2; // > $2 tolerance for rounding
+
+  // Per-period display values
+  const perPeriodDepreciation = toPerPeriod(
+    depreciationPayment,
+    input.paymentFrequency
+  );
+  const perPeriodRentCharge = toPerPeriod(rentCharge, input.paymentFrequency);
+  const perPeriodEffectiveCost = toPerPeriod(
+    effectiveMonthlyCost,
+    input.paymentFrequency
+  );
 
   // Fee analysis
   const feeAnalysis = analyzeFees(input.fees);
@@ -116,14 +160,20 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
 
   const tips = generateTips(partialAnalysis);
 
-  // Calculate potential savings
+  // Calculate potential savings (per-period)
   const potentialSavingsMonthly = tips.reduce(
     (sum, t) => sum + t.potentialSavings,
     0
   );
+  const potentialSavingsPerPeriod = toPerPeriod(
+    potentialSavingsMonthly,
+    input.paymentFrequency
+  );
   const potentialSavingsTotal = potentialSavingsMonthly * input.leaseTerm;
 
   return {
+    paymentFrequency: input.paymentFrequency,
+    dueOnDelivery: input.dueOnDelivery,
     grossCapCost,
     adjustedCapCost,
     depreciation,
@@ -137,6 +187,10 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
     effectiveMonthlyCost,
     onePercentRule,
     sellingPriceDiscount,
+    perPeriodDepreciation,
+    perPeriodRentCharge,
+    perPeriodCalculatedPayment: perPeriodCalculated,
+    perPeriodEffectiveCost,
     paymentDifference,
     hasPaymentDiscrepancy,
     feeAnalysis,
@@ -147,26 +201,26 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
     residualGrade,
     onePercentGrade,
     tips,
-    potentialSavingsMonthly,
+    potentialSavingsPerPeriod,
     potentialSavingsTotal,
   };
 }
 
-/** Format a number as currency */
+/** Format a number as currency (CAD) */
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-CA", {
     style: "currency",
-    currency: "USD",
+    currency: "CAD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 }
 
-/** Format as currency with cents */
+/** Format as currency with cents (CAD) */
 export function formatCurrencyExact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-CA", {
     style: "currency",
-    currency: "USD",
+    currency: "CAD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -175,4 +229,9 @@ export function formatCurrencyExact(value: number): string {
 /** Format a percentage */
 export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
+}
+
+/** Get the display label for a payment frequency */
+export function frequencyLabel(freq: PaymentFrequency): string {
+  return freq === "biweekly" ? "biweekly" : "month";
 }

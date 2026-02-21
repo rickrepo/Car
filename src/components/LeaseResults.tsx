@@ -5,6 +5,7 @@ import {
   formatCurrency,
   formatCurrencyExact,
   formatPercent,
+  frequencyLabel,
 } from "@/lib/lease-math";
 
 interface Props {
@@ -67,6 +68,8 @@ function GradeBadge({
 }
 
 export default function LeaseResults({ analysis, onReset }: Props) {
+  const periodLabel = `/${frequencyLabel(analysis.paymentFrequency)}`;
+
   return (
     <div className="space-y-8">
       {/* Overall Grade Hero */}
@@ -97,8 +100,8 @@ export default function LeaseResults({ analysis, onReset }: Props) {
             {formatCurrency(analysis.potentialSavingsTotal)}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            ({formatCurrencyExact(analysis.potentialSavingsMonthly)}/month over
-            the life of the lease)
+            ({formatCurrencyExact(analysis.potentialSavingsPerPeriod)}
+            {periodLabel} over the life of the lease)
           </p>
         </div>
       )}
@@ -136,6 +139,37 @@ export default function LeaseResults({ analysis, onReset }: Props) {
         </div>
       </section>
 
+      {/* Lease Cost Summary — matches Canadian lease worksheet layout */}
+      <section>
+        <h3 className="text-lg font-semibold text-white mb-4">
+          Your Lease at a Glance
+        </h3>
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <Row
+            label="Gross Cap Cost"
+            value={formatCurrency(analysis.grossCapCost)}
+            sublabel="(vehicle price + fees)"
+          />
+          <Row
+            label="Net Amount Financed"
+            value={formatCurrency(analysis.adjustedCapCost)}
+            sublabel="(after down payment, trade-in, rebates)"
+          />
+          <Row
+            label="Residual Value"
+            value={formatCurrency(analysis.adjustedCapCost - analysis.depreciation)}
+            sublabel={`(${formatPercent(analysis.residualPercent)} of MSRP)`}
+          />
+          <div className="border-t border-gray-700" />
+          <Row
+            label="Total to be Amortized"
+            value={formatCurrency(analysis.depreciation)}
+            sublabel="(what you pay off over the lease)"
+            bold
+          />
+        </div>
+      </section>
+
       {/* Payment Breakdown */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4">
@@ -143,42 +177,48 @@ export default function LeaseResults({ analysis, onReset }: Props) {
         </h3>
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <Row
-            label="Depreciation (value you use)"
-            value={formatCurrencyExact(analysis.depreciationPayment)}
-            sublabel="/month"
+            label="Depreciation"
+            value={formatCurrencyExact(analysis.perPeriodDepreciation)}
+            sublabel={periodLabel}
           />
           <Row
-            label="Rent Charge (finance cost)"
-            value={formatCurrencyExact(analysis.rentCharge)}
-            sublabel="/month"
+            label="Rent Charge (interest)"
+            value={formatCurrencyExact(analysis.perPeriodRentCharge)}
+            sublabel={periodLabel}
             highlight={analysis.rentCharge > analysis.depreciationPayment * 0.3}
           />
           <Row
             label="Calculated Payment"
-            value={formatCurrencyExact(analysis.calculatedPayment)}
-            sublabel="/month"
+            value={formatCurrencyExact(analysis.perPeriodCalculatedPayment)}
+            sublabel={periodLabel}
             bold
           />
           {analysis.hasPaymentDiscrepancy && (
             <div className="px-4 py-3 bg-red-500/10 border-t border-red-500/30">
               <p className="text-sm text-red-400">
                 Payment discrepancy of{" "}
-                {formatCurrencyExact(analysis.paymentDifference)} detected.
-                The dealer&apos;s quoted payment doesn&apos;t match the math — ask them
-                to explain the difference.
+                {formatCurrencyExact(analysis.paymentDifference)} detected. The
+                dealer&apos;s quoted payment doesn&apos;t match the math — ask
+                them to explain the difference.
               </p>
             </div>
           )}
           <div className="border-t border-gray-700" />
           <Row
-            label="Total Lease Cost"
-            value={formatCurrency(analysis.totalLeaseCost)}
-            sublabel="(payments + due at signing)"
+            label="Amount Due on Delivery"
+            value={formatCurrency(analysis.dueOnDelivery)}
+            sublabel="(upfront)"
           />
           <Row
-            label="Effective Monthly Cost"
-            value={formatCurrencyExact(analysis.effectiveMonthlyCost)}
-            sublabel="/month (true cost)"
+            label="Total Lease Cost"
+            value={formatCurrency(analysis.totalLeaseCost)}
+            sublabel="(all payments + amount due on delivery)"
+            bold
+          />
+          <Row
+            label="True Cost"
+            value={formatCurrencyExact(analysis.perPeriodEffectiveCost)}
+            sublabel={`${periodLabel} (everything averaged out)`}
             bold
           />
         </div>
@@ -196,7 +236,7 @@ export default function LeaseResults({ analysis, onReset }: Props) {
             detail={`${formatPercent(analysis.apr)} APR (Money Factor: ${analysis.moneyFactor.toFixed(6)})`}
           />
           <GradeRow
-            label="Selling Price"
+            label="Negotiated Price"
             grade={analysis.sellingPriceGrade}
             detail={analysis.sellingPriceGrade.description}
           />
