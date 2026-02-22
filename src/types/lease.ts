@@ -1,26 +1,24 @@
 export type PaymentFrequency = "monthly" | "biweekly";
 
 export interface LeaseInput {
-  // Vehicle
+  // Vehicle (always on the paperwork)
   msrp: number;
   sellingPrice: number;
 
-  // Cap cost adjustments
-  downPayment: number;
-  tradeInValue: number;
-  rebates: number;
-
-  // Fees (itemized)
-  fees: FeeItem[];
-
-  // Lease terms
+  // Lease terms (always on the paperwork)
   paymentFrequency: PaymentFrequency;
-  paymentAmount: number; // What the dealer quoted (per period)
+  paymentAmount: number; // What the dealer quoted (per period, pre-tax)
   leaseTerm: number; // months
   residualValue: number; // dollar amount
-  annualKm: number; // annual kilometre allowance
 
-  // Amount due on delivery (total out-of-pocket upfront)
+  // Reductions (default 0 if none)
+  downPayment: number;
+  otherCredits: number; // trade-in + rebates + incentives combined
+
+  // Fees (optional — enables junk fee analysis)
+  fees: FeeItem[];
+
+  // Due on delivery (optional — for total cost calc only)
   dueOnDelivery: number;
 }
 
@@ -56,7 +54,7 @@ export interface LeaseAnalysis {
   perPeriodEffectiveCost: number;
 
   // Payment discrepancy
-  paymentDifference: number; // dealer quote vs our math (in per-period amount)
+  paymentDifference: number;
   hasPaymentDiscrepancy: boolean;
 
   // Fee analysis

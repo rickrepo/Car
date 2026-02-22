@@ -7,15 +7,15 @@ interface FeeRule {
 }
 
 const FEE_RULES: FeeRule[] = [
-  // Legitimate fees
+  // Legitimate fees — government or leasing company mandated
   {
-    patterns: ["acquisition", "bank fee"],
+    patterns: ["acquisition", "bank fee", "lender admin"],
     legitimacy: "legitimate",
     explanation:
-      "Set by the leasing company to originate the lease. Typically $595-$1,095. Not negotiable but legitimate.",
+      "Set by the leasing company to originate the lease. Typically $0-$595. Not negotiable but legitimate.",
   },
   {
-    patterns: ["registration", "title", "license", "plate", "tag", "dmv"],
+    patterns: ["registration", "title", "license", "plate", "tag"],
     legitimacy: "legitimate",
     explanation:
       "Government fee required for vehicle registration. Legitimate cost.",
@@ -27,20 +27,44 @@ const FEE_RULES: FeeRule[] = [
       "Charged at lease end if you return the vehicle. Typically $300-$495. Set by the leasing company.",
   },
   {
-    patterns: ["tax", "sales tax"],
+    patterns: ["tax", "sales tax", "hst", "gst", "pst"],
     legitimacy: "legitimate",
-    explanation: "Required by your state/local government. Legitimate cost.",
+    explanation: "Required by provincial/federal government. Legitimate cost.",
+  },
+  {
+    patterns: ["freight", "pdi", "pre-delivery inspection"],
+    legitimacy: "legitimate",
+    explanation:
+      "Freight and Pre-Delivery Inspection. Set by the manufacturer — same at every dealer. Legitimate cost.",
+  },
+  {
+    patterns: ["ppsa", "personal property security"],
+    legitimacy: "legitimate",
+    explanation:
+      "Provincial Personal Property Security Act registration fee. Required to register the lien. Typically $30-$90.",
+  },
+  {
+    patterns: ["a/c tax", "air conditioning tax", "ac tax", "excise"],
+    legitimacy: "legitimate",
+    explanation:
+      "Federal excise tax on vehicles with air conditioning ($100). Legitimate government charge.",
+  },
+  {
+    patterns: ["omvic", "amvic", "tire recycling", "tire levy", "tire stewardship"],
+    legitimacy: "legitimate",
+    explanation:
+      "Provincial regulatory or environmental levy. Small amount, legitimate.",
   },
 
-  // Negotiable fees
+  // Negotiable fees — common but not fixed
   {
-    patterns: ["doc", "documentation", "document"],
+    patterns: ["doc", "documentation", "document", "admin"],
     legitimacy: "negotiable",
     explanation:
-      "Dealer processing fee. Ranges $0-$500+ depending on state. Some states cap this. Often inflated — negotiate it down.",
+      "Dealer processing fee. Ranges widely by dealer. Not regulated in most provinces — negotiate it down or ask to waive.",
   },
   {
-    patterns: ["dealer fee", "dealer handling", "administrative"],
+    patterns: ["dealer fee", "dealer handling"],
     legitimacy: "negotiable",
     explanation:
       "Generic dealer fee. Often inflated. Push back or ask them to reduce/waive it.",
@@ -61,7 +85,7 @@ const FEE_RULES: FeeRule[] = [
     patterns: ["gap", "gap insurance"],
     legitimacy: "negotiable",
     explanation:
-      "GAP coverage is often INCLUDED free by captive lease companies. Verify before paying extra for it.",
+      "GAP coverage is often INCLUDED free by captive lease companies (Honda, Toyota, BMW Financial, etc.). Verify before paying extra.",
   },
   {
     patterns: ["wheel", "tire protection", "tire & wheel", "tire and wheel"],
@@ -69,8 +93,14 @@ const FEE_RULES: FeeRule[] = [
     explanation:
       "Optional protection. Can be worth it on vehicles with expensive low-profile tires, but price is often inflated.",
   },
+  {
+    patterns: ["security deposit"],
+    legitimacy: "negotiable",
+    explanation:
+      "Refundable at lease end. Some brands (BMW) allow multiple security deposits (MSDs) to buy down the rate — this can actually save you money.",
+  },
 
-  // Junk fees
+  // Junk fees — dealer profit centers with little value
   {
     patterns: ["paint protection", "paint sealant", "clear coat", "clearcoat"],
     legitimacy: "junk",
@@ -102,10 +132,10 @@ const FEE_RULES: FeeRule[] = [
       "Worth $20-50 at most, but dealers charge $200-$500. Remove unless you specifically want it.",
   },
   {
-    patterns: ["dealer prep", "dealer preparation", "pdi", "pre-delivery"],
+    patterns: ["dealer prep", "dealer preparation"],
     legitimacy: "junk",
     explanation:
-      "The manufacturer already pays the dealer for vehicle preparation. This is double-dipping. Remove it.",
+      "The manufacturer already pays the dealer for vehicle preparation (that's what Freight/PDI covers). This is double-dipping. Remove it.",
   },
   {
     patterns: ["advertising", "ad fee", "regional ad"],
@@ -114,10 +144,10 @@ const FEE_RULES: FeeRule[] = [
       "The dealer's advertising cost is their business expense, not yours. Remove it.",
   },
   {
-    patterns: ["compliance", "environmental", "enviro"],
+    patterns: ["compliance", "environmental fee"],
     legitimacy: "junk",
     explanation:
-      "Bogus fee with no basis. There's no 'compliance fee' required. Remove it.",
+      "Vague fee with no basis. Not a real regulatory charge. Remove it.",
   },
   {
     patterns: ["electronic filing", "e-filing", "efiling"],
@@ -170,20 +200,22 @@ export function analyzeFees(fees: FeeItem[]): FeeAnalysisItem[] {
   });
 }
 
-/** Common fee presets for the form */
+/** Common fee presets for the form — Canadian lease fees */
 export const COMMON_FEES = [
+  "Freight & PDI",
+  "PPSA Fee",
+  "A/C Tax",
+  "OMVIC / Tire Levy",
+  "Lender Admin Fee",
   "Acquisition Fee",
   "Documentation Fee",
-  "Registration/Title/License",
+  "Registration / Licensing",
   "Dealer Preparation",
   "Paint Protection",
   "Fabric Protection",
   "VIN Etching",
-  "Nitrogen Tire Fill",
-  "Market Adjustment",
   "GAP Insurance",
-  "Maintenance Package",
   "Wheel & Tire Protection",
-  "Pinstriping",
+  "Market Adjustment",
   "Protection Package",
 ];

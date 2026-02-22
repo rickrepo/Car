@@ -50,9 +50,9 @@ export function analyzeLease(input: LeaseInput): LeaseAnalysis {
   // Gross cap cost = selling price + all fees rolled in
   const grossCapCost = input.sellingPrice + totalFees;
 
-  // Adjusted cap cost = gross - reductions (down payment, trade-in, rebates)
+  // Adjusted cap cost = gross - reductions (down payment, trade-in, rebates, etc.)
   const adjustedCapCost =
-    grossCapCost - input.downPayment - input.tradeInValue - input.rebates;
+    grossCapCost - input.downPayment - input.otherCredits;
 
   // Depreciation over the lease term
   const depreciation = adjustedCapCost - input.residualValue;

@@ -8,27 +8,6 @@ interface Props {
   onAnalyze: (input: LeaseInput) => void;
 }
 
-const TOOLTIPS: Record<string, string> = {
-  msrp: "The Manufacturer's Suggested Retail Price — the sticker price on the window.",
-  sellingPrice:
-    'The negotiated vehicle price BEFORE any down payment, trade-in, or rebates. On your paperwork this may be called "Lease Vehicle Amount," "Agreed Upon Value," or "Capitalized Cost."',
-  downPayment:
-    'Cash you\'re putting down. Also called "Cap Cost Reduction." WARNING: On a lease, if the car is totaled, you lose this money.',
-  tradeInValue:
-    "The amount the dealer is giving you for your trade-in vehicle.",
-  rebates:
-    "Manufacturer incentives, loyalty bonuses, or lease cash being applied. Check the manufacturer's website to confirm what's available.",
-  paymentAmount:
-    "The payment amount the dealer is quoting you (pre-tax), at your selected frequency.",
-  dueOnDelivery:
-    'Total amount due upfront when you pick up the vehicle — first payment, fees, down payment, etc. Sometimes called "Due at Signing" or "Due on Delivery."',
-  leaseTerm: "Length of the lease in months. 36 or 48 months are most common.",
-  residualValue:
-    'What the car will be worth at lease end, in dollars. Look for "Residual Value," "Guaranteed Future Value," or "Purchase Option Price at End of Lease" on your paperwork.',
-  annualKm:
-    "The annual kilometre allowance in the lease. Going over costs extra — typically 8-20¢/km.",
-};
-
 function Tooltip({ text }: { text: string }) {
   const [show, setShow] = useState(false);
   return (
@@ -52,13 +31,12 @@ function Tooltip({ text }: { text: string }) {
   );
 }
 
-function NumberInput({
+function DollarInput({
   label,
   tooltip,
   value,
   onChange,
   placeholder,
-  prefix = "$",
   required = false,
 }: {
   label: string;
@@ -66,7 +44,6 @@ function NumberInput({
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  prefix?: string;
   required?: boolean;
 }) {
   return (
@@ -76,22 +53,17 @@ function NumberInput({
         {tooltip && <Tooltip text={tooltip} />}
       </label>
       <div className="relative">
-        {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-            {prefix}
-          </span>
-        )}
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+          $
+        </span>
         <input
           type="text"
           inputMode="decimal"
           value={value}
-          onChange={(e) => {
-            const v = e.target.value.replace(/[^0-9.]/g, "");
-            onChange(v);
-          }}
+          onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))}
           placeholder={placeholder}
           required={required}
-          className={`w-full bg-gray-800 border border-gray-700 rounded-lg py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${prefix ? "pl-7 pr-3" : "px-3"}`}
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 pl-7 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
       </div>
     </div>
@@ -99,20 +71,23 @@ function NumberInput({
 }
 
 export default function LeaseForm({ onAnalyze }: Props) {
+  // Required fields
   const [msrp, setMsrp] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
-  const [downPayment, setDownPayment] = useState("0");
-  const [tradeInValue, setTradeInValue] = useState("0");
-  const [rebates, setRebates] = useState("0");
   const [paymentFrequency, setPaymentFrequency] =
     useState<PaymentFrequency>("biweekly");
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [dueOnDelivery, setDueOnDelivery] = useState("0");
   const [leaseTerm, setLeaseTerm] = useState("48");
   const [residualValue, setResidualValue] = useState("");
-  const [annualKm, setAnnualKm] = useState("20000");
+
+  // Optional — collapsed by default
+  const [showMore, setShowMore] = useState(false);
+  const [downPayment, setDownPayment] = useState("");
+  const [otherCredits, setOtherCredits] = useState("");
+  const [dueOnDelivery, setDueOnDelivery] = useState("");
   const [fees, setFees] = useState<{ name: string; amount: string }[]>([]);
   const [showFeeDropdown, setShowFeeDropdown] = useState(false);
+
   const [errors, setErrors] = useState<string[]>([]);
 
   const addFee = (name: string) => {
@@ -144,7 +119,7 @@ export default function LeaseForm({ onAnalyze }: Props) {
 
     if (!parsedMsrp || parsedMsrp <= 0) errs.push("MSRP is required.");
     if (!parsedSelling || parsedSelling <= 0)
-      errs.push("Negotiated price is required.");
+      errs.push("Selling price is required.");
     if (!parsedPayment || parsedPayment <= 0)
       errs.push("Payment amount is required.");
     if (!parsedResidual || parsedResidual <= 0)
@@ -160,23 +135,18 @@ export default function LeaseForm({ onAnalyze }: Props) {
 
     const parsedFees: FeeItem[] = fees
       .filter((f) => f.amount && parseFloat(f.amount) > 0)
-      .map((f) => ({
-        name: f.name,
-        amount: parseFloat(f.amount),
-      }));
+      .map((f) => ({ name: f.name, amount: parseFloat(f.amount) }));
 
     const input: LeaseInput = {
       msrp: parsedMsrp,
       sellingPrice: parsedSelling,
-      downPayment: parseFloat(downPayment) || 0,
-      tradeInValue: parseFloat(tradeInValue) || 0,
-      rebates: parseFloat(rebates) || 0,
-      fees: parsedFees,
       paymentFrequency,
       paymentAmount: parsedPayment,
       leaseTerm: parsedTerm,
       residualValue: parsedResidual,
-      annualKm: parseInt(annualKm) || 20000,
+      downPayment: parseFloat(downPayment) || 0,
+      otherCredits: parseFloat(otherCredits) || 0,
+      fees: parsedFees,
       dueOnDelivery: parseFloat(dueOnDelivery) || 0,
     };
 
@@ -190,168 +160,52 @@ export default function LeaseForm({ onAnalyze }: Props) {
   const paymentLabel =
     paymentFrequency === "biweekly" ? "Biweekly Payment" : "Monthly Payment";
 
+  const hasOptionalData =
+    downPayment || otherCredits || dueOnDelivery || fees.length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Vehicle Pricing */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
-            1
-          </span>
-          Vehicle Pricing
-        </h3>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Core lease numbers — everything on the paperwork */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-1">
+            Your Lease Quote
+          </h3>
+          <p className="text-sm text-gray-500">
+            These 6 numbers are on every lease worksheet.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumberInput
+          <DollarInput
             label="MSRP (Sticker Price)"
-            tooltip={TOOLTIPS.msrp}
+            tooltip="The Manufacturer's Suggested Retail Price — the sticker price on the window."
             value={msrp}
             onChange={setMsrp}
             placeholder="50,000"
             required
           />
-          <NumberInput
-            label="Negotiated Price"
-            tooltip={TOOLTIPS.sellingPrice}
+          <DollarInput
+            label="Selling Price"
+            tooltip='The negotiated vehicle price. On your paperwork this may be called "Agreed Upon Value," "Lease Vehicle Amount," or "Capitalized Cost."'
             value={sellingPrice}
             onChange={setSellingPrice}
             placeholder="46,000"
             required
           />
         </div>
-      </section>
 
-      {/* Cap Cost Reductions */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
-            2
-          </span>
-          Cap Cost Reductions
-        </h3>
-        <p className="text-sm text-gray-400 mb-3">
-          Anything that reduces the amount being financed.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <NumberInput
-            label="Down Payment"
-            tooltip={TOOLTIPS.downPayment}
-            value={downPayment}
-            onChange={setDownPayment}
-            placeholder="0"
-          />
-          <NumberInput
-            label="Trade-in Value"
-            tooltip={TOOLTIPS.tradeInValue}
-            value={tradeInValue}
-            onChange={setTradeInValue}
-            placeholder="0"
-          />
-          <NumberInput
-            label="Rebates / Incentives"
-            tooltip={TOOLTIPS.rebates}
-            value={rebates}
-            onChange={setRebates}
-            placeholder="0"
-          />
-        </div>
-      </section>
-
-      {/* Fees */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
-            3
-          </span>
-          Fees on the Quote
-        </h3>
-        <p className="text-sm text-gray-400 mb-3">
-          Add any fees listed on your lease quote. We&apos;ll flag the junk
-          ones.
-        </p>
-
-        {fees.map((fee, i) => (
-          <div key={i} className="flex gap-2 mb-2 items-center">
-            <span className="text-sm text-gray-300 w-48 shrink-0 truncate">
-              {fee.name}
-            </span>
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                $
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={fee.amount}
-                onChange={(e) => updateFeeAmount(i, e.target.value)}
-                placeholder="0"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 pl-7 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => removeFee(i)}
-              className="text-gray-500 hover:text-red-400 transition-colors px-2"
-              aria-label="Remove fee"
-            >
-              &times;
-            </button>
-          </div>
-        ))}
-
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowFeeDropdown(!showFeeDropdown)}
-            className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
-          >
-            + Add a fee
-          </button>
-          {showFeeDropdown && (
-            <div className="absolute z-20 mt-1 w-72 max-h-60 overflow-y-auto bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
-              {availableFees.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => addFee(name)}
-                  className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                >
-                  {name}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const custom = prompt("Enter fee name:");
-                  if (custom && custom.trim()) addFee(custom.trim());
-                }}
-                className="block w-full text-left px-3 py-2 text-sm text-emerald-400 hover:bg-gray-700 border-t border-gray-700"
-              >
-                + Custom fee...
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Lease Terms */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center font-bold">
-            4
-          </span>
-          Lease Terms
-        </h3>
+        {/* Payment frequency + amount */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Payment frequency toggle */}
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Payment Frequency
             </label>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setPaymentFrequency("biweekly")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                   paymentFrequency === "biweekly"
                     ? "bg-emerald-500 text-black"
                     : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700"
@@ -362,7 +216,7 @@ export default function LeaseForm({ onAnalyze }: Props) {
               <button
                 type="button"
                 onClick={() => setPaymentFrequency("monthly")}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                   paymentFrequency === "monthly"
                     ? "bg-emerald-500 text-black"
                     : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700"
@@ -372,26 +226,21 @@ export default function LeaseForm({ onAnalyze }: Props) {
               </button>
             </div>
           </div>
-
-          <NumberInput
+          <DollarInput
             label={`${paymentLabel} (pre-tax)`}
-            tooltip={TOOLTIPS.paymentAmount}
+            tooltip="The payment amount the dealer quoted, before tax."
             value={paymentAmount}
             onChange={setPaymentAmount}
             placeholder={paymentFrequency === "biweekly" ? "210" : "450"}
             required
           />
-          <NumberInput
-            label="Amount Due on Delivery"
-            tooltip={TOOLTIPS.dueOnDelivery}
-            value={dueOnDelivery}
-            onChange={setDueOnDelivery}
-            placeholder="2,000"
-          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Lease Term
-              <Tooltip text={TOOLTIPS.leaseTerm} />
+              <Tooltip text="Length of the lease in months. 36 or 48 months are most common in Canada." />
             </label>
             <select
               value={leaseTerm}
@@ -399,41 +248,149 @@ export default function LeaseForm({ onAnalyze }: Props) {
               className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="24">24 months</option>
-              <option value="27">27 months</option>
-              <option value="30">30 months</option>
-              <option value="33">33 months</option>
               <option value="36">36 months</option>
               <option value="39">39 months</option>
-              <option value="42">42 months</option>
               <option value="48">48 months</option>
               <option value="60">60 months</option>
             </select>
           </div>
-          <NumberInput
+          <DollarInput
             label="Residual Value"
-            tooltip={TOOLTIPS.residualValue}
+            tooltip='What the car is worth at lease end. Look for "Residual Value," "Buyback Price," "Guaranteed Future Value," or "Purchase Option Price" on your paperwork.'
             value={residualValue}
             onChange={setResidualValue}
-            placeholder="23,200"
+            placeholder="25,000"
             required
           />
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Annual Kilometre Allowance
-              <Tooltip text={TOOLTIPS.annualKm} />
-            </label>
-            <select
-              value={annualKm}
-              onChange={(e) => setAnnualKm(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="16000">16,000 km/year</option>
-              <option value="18000">18,000 km/year</option>
-              <option value="20000">20,000 km/year</option>
-              <option value="24000">24,000 km/year</option>
-            </select>
-          </div>
         </div>
+      </section>
+
+      {/* Optional details — expand for deeper analysis */}
+      <section>
+        <button
+          type="button"
+          onClick={() => setShowMore(!showMore)}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+        >
+          <span
+            className={`transition-transform ${showMore ? "rotate-90" : ""}`}
+          >
+            &#9654;
+          </span>
+          {showMore ? "Hide" : "Add"} down payment, fees, &amp; more details
+          {hasOptionalData && !showMore && (
+            <span className="text-emerald-400 text-xs">(has data)</span>
+          )}
+        </button>
+
+        {showMore && (
+          <div className="mt-4 space-y-6 pl-4 border-l-2 border-gray-800">
+            {/* Reductions */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">
+                Cap Cost Reductions
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <DollarInput
+                  label="Down Payment"
+                  tooltip="Cash you're putting down. WARNING: On a lease, if the car is totaled you lose this money."
+                  value={downPayment}
+                  onChange={setDownPayment}
+                  placeholder="0"
+                />
+                <DollarInput
+                  label="Trade-in / Rebates / Incentives"
+                  tooltip="Combined total of trade-in value plus any manufacturer rebates, loyalty bonuses, or lease cash."
+                  value={otherCredits}
+                  onChange={setOtherCredits}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Due on delivery */}
+            <DollarInput
+              label="Amount Due on Delivery"
+              tooltip='Total upfront amount when you pick up the vehicle — first payment, fees, down payment, etc. Sometimes called "Due at Signing."'
+              value={dueOnDelivery}
+              onChange={setDueOnDelivery}
+              placeholder="0"
+            />
+
+            {/* Fees */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-1">
+                Fees on the Quote
+              </h4>
+              <p className="text-xs text-gray-500 mb-3">
+                Add fees from your quote and we&apos;ll flag the junk ones.
+              </p>
+
+              {fees.map((fee, i) => (
+                <div key={i} className="flex gap-2 mb-2 items-center">
+                  <span className="text-sm text-gray-300 w-44 shrink-0 truncate">
+                    {fee.name}
+                  </span>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      $
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={fee.amount}
+                      onChange={(e) => updateFeeAmount(i, e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 pl-7 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFee(i)}
+                    className="text-gray-500 hover:text-red-400 transition-colors px-2"
+                    aria-label="Remove fee"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFeeDropdown(!showFeeDropdown)}
+                  className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  + Add a fee
+                </button>
+                {showFeeDropdown && (
+                  <div className="absolute z-20 mt-1 w-72 max-h-60 overflow-y-auto bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
+                    {availableFees.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => addFee(name)}
+                        className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        {name}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const custom = prompt("Enter fee name:");
+                        if (custom && custom.trim()) addFee(custom.trim());
+                      }}
+                      className="block w-full text-left px-3 py-2 text-sm text-emerald-400 hover:bg-gray-700 border-t border-gray-700"
+                    >
+                      + Custom fee...
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Errors */}

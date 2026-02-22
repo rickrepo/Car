@@ -72,7 +72,7 @@ export default function LeaseResults({ analysis, onReset }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Overall Grade Hero */}
+      {/* Overall Grade */}
       <div
         className={`bg-gradient-to-br ${GRADE_BG[analysis.overallGrade.letter]} rounded-2xl p-8 text-center border border-gray-800`}
       >
@@ -106,26 +106,27 @@ export default function LeaseResults({ analysis, onReset }: Props) {
         </div>
       )}
 
-      {/* The Hidden Numbers */}
+      {/* The Hidden Numbers — the key value prop */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4">
           The Numbers They Don&apos;t Want You to See
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
             label="Hidden APR"
             value={formatPercent(analysis.apr)}
             grade={analysis.moneyFactorGrade}
-          />
-          <StatCard
-            label="Money Factor"
-            value={analysis.moneyFactor.toFixed(6)}
-            sublabel="(the dealer's secret)"
+            detail={analysis.moneyFactorGrade.label}
           />
           <StatCard
             label="1% Rule"
             value={formatPercent(analysis.onePercentRule)}
             grade={analysis.onePercentGrade}
+            detail={
+              analysis.onePercentRule <= 1
+                ? "At or below target"
+                : "Above 1% target"
+            }
           />
           <StatCard
             label="Price vs MSRP"
@@ -135,42 +136,18 @@ export default function LeaseResults({ analysis, onReset }: Props) {
                 : `+${formatPercent(Math.abs(analysis.sellingPriceDiscount))}`
             }
             grade={analysis.sellingPriceGrade}
+            detail={analysis.sellingPriceGrade.label}
+          />
+          <StatCard
+            label="Residual"
+            value={formatPercent(analysis.residualPercent)}
+            grade={analysis.residualGrade}
+            detail={`of MSRP`}
           />
         </div>
       </section>
 
-      {/* Lease Cost Summary — matches Canadian lease worksheet layout */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Your Lease at a Glance
-        </h3>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <Row
-            label="Gross Cap Cost"
-            value={formatCurrency(analysis.grossCapCost)}
-            sublabel="(vehicle price + fees)"
-          />
-          <Row
-            label="Net Amount Financed"
-            value={formatCurrency(analysis.adjustedCapCost)}
-            sublabel="(after down payment, trade-in, rebates)"
-          />
-          <Row
-            label="Residual Value"
-            value={formatCurrency(analysis.adjustedCapCost - analysis.depreciation)}
-            sublabel={`(${formatPercent(analysis.residualPercent)} of MSRP)`}
-          />
-          <div className="border-t border-gray-700" />
-          <Row
-            label="Total to be Amortized"
-            value={formatCurrency(analysis.depreciation)}
-            sublabel="(what you pay off over the lease)"
-            bold
-          />
-        </div>
-      </section>
-
-      {/* Payment Breakdown */}
+      {/* Payment Math */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4">
           Payment Breakdown
@@ -196,64 +173,31 @@ export default function LeaseResults({ analysis, onReset }: Props) {
           {analysis.hasPaymentDiscrepancy && (
             <div className="px-4 py-3 bg-red-500/10 border-t border-red-500/30">
               <p className="text-sm text-red-400">
-                Payment discrepancy of{" "}
-                {formatCurrencyExact(analysis.paymentDifference)} detected. The
-                dealer&apos;s quoted payment doesn&apos;t match the math — ask
-                them to explain the difference.
+                {formatCurrencyExact(analysis.paymentDifference)} discrepancy
+                — the dealer&apos;s quoted payment doesn&apos;t match the math.
+                Ask them to explain.
               </p>
             </div>
           )}
+          {analysis.dueOnDelivery > 0 && (
+            <>
+              <div className="border-t border-gray-700" />
+              <Row
+                label="Amount Due on Delivery"
+                value={formatCurrency(analysis.dueOnDelivery)}
+              />
+            </>
+          )}
           <div className="border-t border-gray-700" />
-          <Row
-            label="Amount Due on Delivery"
-            value={formatCurrency(analysis.dueOnDelivery)}
-            sublabel="(upfront)"
-          />
           <Row
             label="Total Lease Cost"
             value={formatCurrency(analysis.totalLeaseCost)}
-            sublabel="(all payments + amount due on delivery)"
-            bold
-          />
-          <Row
-            label="True Cost"
-            value={formatCurrencyExact(analysis.perPeriodEffectiveCost)}
-            sublabel={`${periodLabel} (everything averaged out)`}
             bold
           />
         </div>
       </section>
 
-      {/* Component Grades */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Grade Breakdown
-        </h3>
-        <div className="space-y-3">
-          <GradeRow
-            label="Interest Rate (APR)"
-            grade={analysis.moneyFactorGrade}
-            detail={`${formatPercent(analysis.apr)} APR (Money Factor: ${analysis.moneyFactor.toFixed(6)})`}
-          />
-          <GradeRow
-            label="Negotiated Price"
-            grade={analysis.sellingPriceGrade}
-            detail={analysis.sellingPriceGrade.description}
-          />
-          <GradeRow
-            label="Residual Value"
-            grade={analysis.residualGrade}
-            detail={`${formatPercent(analysis.residualPercent)} of MSRP — ${analysis.residualGrade.description.toLowerCase()}`}
-          />
-          <GradeRow
-            label="1% Rule"
-            grade={analysis.onePercentGrade}
-            detail={`${formatPercent(analysis.onePercentRule)} of MSRP (target: ≤ 1.0%)`}
-          />
-        </div>
-      </section>
-
-      {/* Fee Analysis */}
+      {/* Fee Analysis — only if fees were entered */}
       {analysis.feeAnalysis.length > 0 && (
         <section>
           <h3 className="text-lg font-semibold text-white mb-4">
@@ -292,7 +236,7 @@ export default function LeaseResults({ analysis, onReset }: Props) {
         </section>
       )}
 
-      {/* Negotiation Tips */}
+      {/* What to Negotiate */}
       {analysis.tips.length > 0 && (
         <section>
           <h3 className="text-lg font-semibold text-white mb-4">
@@ -353,13 +297,13 @@ export default function LeaseResults({ analysis, onReset }: Props) {
 function StatCard({
   label,
   value,
-  sublabel,
   grade,
+  detail,
 }: {
   label: string;
   value: string;
-  sublabel?: string;
-  grade?: { letter: GradeLetter };
+  grade: { letter: GradeLetter };
+  detail?: string;
 }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -368,9 +312,9 @@ function StatCard({
       </p>
       <div className="flex items-center gap-2">
         <p className="text-xl font-bold text-white">{value}</p>
-        {grade && <GradeBadge letter={grade.letter} size="small" />}
+        <GradeBadge letter={grade.letter} size="small" />
       </div>
-      {sublabel && <p className="text-xs text-gray-500 mt-1">{sublabel}</p>}
+      {detail && <p className="text-xs text-gray-500 mt-1">{detail}</p>}
     </div>
   );
 }
@@ -407,29 +351,6 @@ function Row({
           <span className="text-xs text-gray-500 ml-1">{sublabel}</span>
         )}
       </span>
-    </div>
-  );
-}
-
-function GradeRow({
-  label,
-  grade,
-  detail,
-}: {
-  label: string;
-  grade: { letter: GradeLetter; label: string };
-  detail: string;
-}) {
-  return (
-    <div className="flex items-center gap-4 bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <GradeBadge letter={grade.letter} size="small" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-medium">{label}</span>
-          <span className="text-xs text-gray-500">— {grade.label}</span>
-        </div>
-        <p className="text-sm text-gray-400 truncate">{detail}</p>
-      </div>
     </div>
   );
 }
