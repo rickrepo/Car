@@ -94,9 +94,23 @@ export const OMVIC_RULES: OmvicRule[] = [
     title: "All-in pricing violation",
     regulation: "O. Reg. 333/08 s.35-36",
     explanation:
-      "Since 2010, Ontario's all-in pricing law requires the advertised price to include ALL dealer fees. The only things that can be added are HST and government licensing/registration. If the dealer advertised $40,000 then added a $500 admin fee at the desk, that's illegal.",
+      "Since 2010, Ontario's all-in pricing law requires the advertised price to include ALL dealer fees — admin, documentation, freight, PDI, OMVIC fee, everything. The ONLY things that can be added on top are HST and government licensing/registration. OMVIC's 2024 mystery shopping found 28% of dealers failed this check.",
     remedy:
-      "File an OMVIC complaint. The dealer can be fined and must refund the excess fees. Keep a copy of the advertisement and your contract as evidence.",
+      "File an OMVIC complaint (1-800-943-6002 or consumers@omvic.on.ca). The dealer can be fined and must refund the excess fees. Keep a screenshot of the advertisement and a copy of your contract.",
+  },
+  {
+    id: "preinstalled_upcharge",
+    category: "pricing",
+    question:
+      "Did the dealer charge you extra for products already installed on the vehicle (nitrogen tires, VIN etching, paint protection, etc.) that weren't in the advertised price?",
+    violationAnswer: "yes",
+    severity: "serious",
+    title: "Pre-installed products not in advertised price",
+    regulation: "O. Reg. 333/08 s.36",
+    explanation:
+      "If a product is already installed on the vehicle when you see it (nitrogen, VIN etching, paint sealant, wheel locks, etc.), its cost must be included in the advertised all-in price. The dealer cannot install something and then charge you for it on top of the sticker.",
+    remedy:
+      "File an OMVIC complaint. You should not have to pay above the advertised price for pre-installed items. This is a direct all-in pricing violation.",
   },
   {
     id: "fees_not_disclosed",
@@ -106,9 +120,9 @@ export const OMVIC_RULES: OmvicRule[] = [
     violationAnswer: "yes",
     severity: "serious",
     title: "Fees not disclosed before signing",
-    regulation: "CPA s.74",
+    regulation: "CPA s.74 / O. Reg. 333/08 s.39-42",
     explanation:
-      "All costs must be clearly disclosed in writing before you sign. If fees appeared on the contract that weren't discussed or shown to you beforehand, the dealer violated the Consumer Protection Act.",
+      "All costs must be clearly disclosed in writing before you sign. If fees appeared on the contract that weren't discussed or shown to you beforehand, the dealer violated the Consumer Protection Act. Every fee must also be separately itemized on the bill of sale.",
     remedy:
       "File an OMVIC complaint. You may be able to have the contract rescinded (voided) under the CPA.",
   },
@@ -206,11 +220,25 @@ export const OMVIC_RULES: OmvicRule[] = [
     violationAnswer: "yes",
     severity: "serious",
     title: "Misrepresentation of vehicle",
-    regulation: "CPA s.14 / MVDA Code of Ethics",
+    regulation: "CPA s.14 / O. Reg. 332/08 (Code of Ethics)",
     explanation:
-      "Dealers must not make false or misleading representations about the vehicle. This includes claims about features, condition, accident history, mileage, or any other material fact.",
+      "Dealers must not make false or misleading representations about the vehicle. This includes claims about features, condition, accident history, mileage, or any other material fact. Under the CPA, you can rescind a contract entered into through unfair practices within 1 year.",
     remedy:
-      "Document what was claimed vs. reality. File an OMVIC complaint. Misrepresentation can be grounds to rescind the contract and recover damages.",
+      "Document what was claimed vs. reality (texts, emails, screenshots). File an OMVIC complaint. Misrepresentation is grounds to rescind the contract within 1 year (CPA s.18) and may qualify for the Compensation Fund (up to $45,000).",
+  },
+  {
+    id: "contract_not_explained",
+    category: "sales_practices",
+    question:
+      "Did the dealer push papers in front of you and say \"just sign here\" without explaining the key terms — total cost, interest rate, or your obligations?",
+    violationAnswer: "yes",
+    severity: "moderate",
+    title: "Contract terms not explained before signing",
+    regulation: "O. Reg. 332/08 (Code of Ethics)",
+    explanation:
+      "The Code of Ethics requires the dealer to explain the terms of the contract to you before you sign — including your total financial obligation, interest rate, and any end-of-term responsibilities. \"Just sign here\" is not sufficient.",
+    remedy:
+      "File an OMVIC complaint. Code of Ethics violations can result in fines up to $25,000 for the dealer. If key terms were hidden, this may also support a CPA unfair practice claim.",
   },
 
   // === VEHICLE HISTORY DISCLOSURES ===
@@ -218,29 +246,29 @@ export const OMVIC_RULES: OmvicRule[] = [
     id: "no_history_disclosure",
     category: "disclosure",
     question:
-      "Did the dealer fail to tell you about the vehicle's history — specifically whether it was ever a rental, had structural damage, was flood/fire damaged, branded as salvage/rebuilt, or had repairs over $3,000?",
+      "Did the dealer fail to disclose IN WRITING whether the vehicle was ever a rental/police car, had structural damage, was flood/fire damaged, branded as salvage/rebuilt, or had repairs over $3,000?",
     violationAnswer: "yes",
     severity: "serious",
     title: "Mandatory vehicle history not disclosed",
-    regulation: "O. Reg. 333/08 s.43",
+    regulation: "O. Reg. 333/08 s.42-43 / s.50",
     explanation:
-      "Ontario dealers must disclose: prior daily rental / police / emergency use, structural damage or repairs, salvage / rebuilt / irreparable branding, flood or fire damage, out-of-province registration, two or more body panels replaced, repairs exceeding $3,000, non-functional airbags or ABS, theft recovery, and accurate odometer reading. ALL of these must be disclosed before the contract is signed.",
+      "Ontario dealers must disclose IN WRITING on the contract: prior rental / police / emergency / taxi use, structural damage or repairs, salvage / rebuilt / irreparable branding, flood or fire damage, out-of-province registration, two or more body panels replaced, repairs exceeding $3,000, non-functional airbags or ABS, and theft recovery. Verbal disclosure does not count — it must be on the bill of sale.",
     remedy:
-      "File an OMVIC complaint immediately. Failure to disclose vehicle history is one of the most serious violations and can be grounds to void the entire contract under CPA s.18(1).",
+      "You have a statutory 90-DAY CANCELLATION RIGHT (O. Reg. 333/08 s.50) if the dealer failed to disclose: vehicle branding, prior rental/police/taxi use, or inaccurate odometer. Send written cancellation notice to the dealer. Also file an OMVIC complaint and apply to the Compensation Fund (up to $45,000).",
   },
   {
     id: "odometer_issue",
     category: "disclosure",
     question:
-      "Do you suspect the odometer reading is inaccurate, or did the dealer fail to confirm whether the odometer has been replaced or tampered with?",
+      "Do you suspect the odometer reading is inaccurate, or did the dealer fail to confirm in writing whether the odometer has been replaced or tampered with?",
     violationAnswer: "yes",
     severity: "serious",
     title: "Odometer disclosure issue",
-    regulation: "O. Reg. 333/08 s.43(1)(j) / Criminal Code s.380",
+    regulation: "O. Reg. 333/08 s.42 / s.50 / Criminal Code s.380",
     explanation:
-      "Dealers must disclose the odometer reading and confirm whether it's believed to be accurate. Odometer tampering is a criminal offence in Canada under the Criminal Code (fraud). Even selling a vehicle with a known-inaccurate odometer without disclosure is a serious MVDA violation.",
+      "Dealers must disclose the odometer reading in writing and confirm whether it's believed to be accurate. If the odometer is inaccurate by more than 5% or 1,000 km (whichever is less), you have a 90-day right to cancel the entire contract. Odometer tampering is a criminal offence under the Criminal Code.",
     remedy:
-      "File an OMVIC complaint and consider reporting to police if you believe the odometer was deliberately tampered with.",
+      "You have a 90-DAY CANCELLATION RIGHT if the odometer is inaccurate (O. Reg. 333/08 s.50). File an OMVIC complaint and consider reporting to police if you believe the odometer was deliberately tampered with. The Compensation Fund (up to $45,000) may also apply.",
   },
 
   // === DEPOSITS ===
@@ -252,11 +280,11 @@ export const OMVIC_RULES: OmvicRule[] = [
     violationAnswer: "yes",
     severity: "serious",
     title: "Deposit not returned",
-    regulation: "CPA principles / OMVIC guidance",
+    regulation: "MVDA / CPA / OMVIC guidance",
     explanation:
-      "If you left a deposit but no binding contract was signed, the dealer must return your deposit. There is no such thing as a \"non-refundable deposit\" before a binding contract exists. Deposit disputes are OMVIC's most common complaint category.",
+      "If you left a deposit but no binding contract was signed, the dealer must return your deposit. There is no such thing as a \"non-refundable deposit\" before a binding contract exists. Deposit disputes are OMVIC's #1 complaint category.",
     remedy:
-      "File an OMVIC complaint. If the dealer still refuses, pursue the matter in Small Claims Court. Keep all receipts and communications.",
+      "Send a written demand by registered mail. File an OMVIC complaint (1-800-943-6002). Apply to the Compensation Fund (up to $45,000) if the dealer won't pay. Small Claims Court (up to $35,000) is also an option.",
   },
 
   // === TRADE-IN ===
@@ -273,6 +301,20 @@ export const OMVIC_RULES: OmvicRule[] = [
       "The trade-in value must be clearly shown as a separate line item, not buried in the overall price. Hiding it makes it impossible to verify whether you got a fair deal on both the trade-in and the new vehicle.",
     remedy:
       "Ask for the trade-in value to be shown separately. If the dealer already combined the numbers, request a revised breakdown.",
+  },
+  {
+    id: "trade_in_not_returned",
+    category: "trade_in",
+    question:
+      "Did you ask for your trade-in vehicle back before the deal was finalized, and the dealer refused or said they already sold it?",
+    violationAnswer: "yes",
+    severity: "serious",
+    title: "Trade-in not returned on request",
+    regulation: "O. Reg. 333/08 s.38",
+    explanation:
+      "If you request the return of your trade-in vehicle BEFORE the contract for the new vehicle is complete, the dealer MUST return it immediately. They cannot hold it hostage or claim they already sold it.",
+    remedy:
+      "File an OMVIC complaint immediately. The dealer is legally required to return your trade-in. If they disposed of it, pursue the value through Small Claims Court and the Compensation Fund.",
   },
   {
     id: "trade_in_bait_switch",
