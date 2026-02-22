@@ -1,0 +1,55 @@
+export const PROVINCES = [
+  { code: "ON", name: "Ontario" },
+  { code: "BC", name: "British Columbia" },
+  { code: "AB", name: "Alberta" },
+  { code: "QC", name: "Quebec" },
+  { code: "MB", name: "Manitoba" },
+  { code: "SK", name: "Saskatchewan" },
+  { code: "NS", name: "Nova Scotia" },
+  { code: "NB", name: "New Brunswick" },
+  { code: "NL", name: "Newfoundland & Labrador" },
+  { code: "PE", name: "Prince Edward Island" },
+  { code: "NT", name: "Northwest Territories" },
+  { code: "YT", name: "Yukon" },
+  { code: "NU", name: "Nunavut" },
+] as const;
+
+export const VEHICLE_MAKES = [
+  "Acura",
+  "Audi",
+  "BMW",
+  "Buick",
+  "Cadillac",
+  "Chevrolet",
+  "Chrysler",
+  "Dodge",
+  "Ford",
+  "Genesis",
+  "GMC",
+  "Honda",
+  "Hyundai",
+  "Infiniti",
+  "Jaguar",
+  "Jeep",
+  "Kia",
+  "Land Rover",
+  "Lexus",
+  "Lincoln",
+  "Mazda",
+  "Mercedes-Benz",
+  "MINI",
+  "Mitsubishi",
+  "Nissan",
+  "Porsche",
+  "Ram",
+  "Subaru",
+  "Tesla",
+  "Toyota",
+  "Volkswagen",
+  "Volvo",
+] as const;
+
+export function getProvinceLabel(code: string): string {
+  const p = PROVINCES.find((p) => p.code === code);
+  return p ? p.name : code;
+}
