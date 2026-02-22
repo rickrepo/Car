@@ -7,6 +7,8 @@ import {
   formatPercent,
   frequencyLabel,
 } from "@/lib/lease-math";
+import { detectAutoViolations } from "@/lib/omvic-rules";
+import DealerViolationCheck from "@/components/DealerViolationCheck";
 
 interface Props {
   analysis: LeaseAnalysis;
@@ -69,6 +71,13 @@ function GradeBadge({
 
 export default function LeaseResults({ analysis, onReset }: Props) {
   const periodLabel = `/${frequencyLabel(analysis.paymentFrequency)}`;
+
+  const autoViolations = detectAutoViolations({
+    apr: analysis.apr,
+    hasPaymentDiscrepancy: analysis.hasPaymentDiscrepancy,
+    sellingPriceDiscount: analysis.sellingPriceDiscount,
+    totalJunkFees: analysis.totalJunkFees,
+  });
 
   return (
     <div className="space-y-8">
@@ -235,6 +244,9 @@ export default function LeaseResults({ analysis, onReset }: Props) {
           </div>
         </section>
       )}
+
+      {/* OMVIC Violation Checker */}
+      <DealerViolationCheck autoViolations={autoViolations} />
 
       {/* What to Negotiate */}
       {analysis.tips.length > 0 && (
