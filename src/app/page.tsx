@@ -1,73 +1,192 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { Deal } from "@/lib/database.types";
+import DealCard from "@/components/DealCard";
 
 export default function HomePage() {
+  const [recentDeals, setRecentDeals] = useState<Deal[]>([]);
+  const [stats, setStats] = useState({
+    totalDeals: 0,
+    avgResidual: 0,
+    avgApr: 0,
+  });
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setLoaded(true);
+      return;
+    }
+
+    async function load() {
+      // Fetch recent deals
+      const { data: recent } = await supabase
+        .from("deals")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (recent) setRecentDeals(recent as Deal[]);
+
+      // Fetch aggregate stats
+      const { data: allDeals } = await supabase
+        .from("deals")
+        .select("apr, residual_percent");
+
+      if (allDeals && allDeals.length > 0) {
+        const aprs = allDeals
+          .map((d) => d.apr)
+          .filter((a): a is number => a != null);
+        const residuals = allDeals
+          .map((d) => d.residual_percent)
+          .filter((r): r is number => r != null);
+        const avg = (arr: number[]) =>
+          arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+        setStats({
+          totalDeals: allDeals.length,
+          avgApr: Math.round(avg(aprs) * 10) / 10,
+          avgResidual: Math.round(avg(residuals) * 10) / 10,
+        });
+      }
+
+      setLoaded(true);
+    }
+
+    load();
+  }, []);
+
   return (
     <div className="max-w-5xl mx-auto px-4">
       {/* Hero */}
       <section className="py-20 text-center">
         <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">
-          Is your lease deal
+          Stop Guessing.
           <br />
-          <span className="text-emerald-400">actually</span> a good deal?
+          <span className="text-emerald-400">Start Comparing.</span>
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-8">
-          Dealerships hide the real interest rate, pad your quote with junk fees,
-          and hope you just look at the monthly payment. We reverse-engineer
-          their math and tell you exactly what to push back on.
+          See what Canadians are actually paying for leases. Submit your quote
+          or purchase and compare against real community data. Know if
+          you&apos;re getting a fair deal before you sign.
         </p>
-        <Link
-          href="/analyze"
-          className="inline-block py-3 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-colors text-lg"
-        >
-          Analyze My Lease Quote
-        </Link>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Link
+            href="/submit"
+            className="inline-block py-3 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-colors text-lg"
+          >
+            Submit Your Deal
+          </Link>
+          <Link
+            href="/browse"
+            className="inline-block py-3 px-8 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors text-lg border border-gray-700"
+          >
+            Browse Deals
+          </Link>
+        </div>
       </section>
+
+      {/* Live Stats */}
+      {loaded && stats.totalDeals > 0 && (
+        <section className="pb-16">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-white">
+                {stats.totalDeals.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Deals Shared</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-white">
+                {stats.avgResidual}%
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Avg Residual</p>
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+              <p className="text-3xl font-bold text-white">
+                {stats.avgApr}%
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Avg APR</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recent Submissions */}
+      {recentDeals.length > 0 && (
+        <section className="pb-16 border-t border-gray-800 pt-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">
+              Recent Submissions
+            </h2>
+            <Link
+              href="/browse"
+              className="text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              See all deals &rarr;
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recentDeals.map((deal) => (
+              <DealCard key={deal.id} deal={deal} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* How it works */}
       <section className="py-16 border-t border-gray-800">
         <h2 className="text-2xl font-bold text-white text-center mb-12">
           How It Works
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           <Step
             number="1"
-            title="Enter Your Numbers"
-            description="Type in the key numbers from your lease quote — MSRP, selling price, monthly payment, residual value, and any fees listed."
+            title="Submit Your Deal"
+            description="Enter the numbers from your lease quote or signed deal — MSRP, payment, residual, fees."
           />
           <Step
             number="2"
-            title="We Do the Math"
-            description="We reverse-engineer the hidden money factor (interest rate), verify the dealer's payment calculation, and flag every junk fee."
+            title="We Crunch the Numbers"
+            description="Our engine reverse-engineers the hidden APR, grades your deal A-F, and flags junk fees."
           />
           <Step
             number="3"
-            title="Know What to Negotiate"
-            description="Get an A-F grade, specific negotiation scripts, and exactly how much money you can save by pushing back."
+            title="Compare Against Others"
+            description="See how your deal stacks up against what others are paying for the same vehicle in your area."
+          />
+          <Step
+            number="4"
+            title="Track Trends"
+            description="Watch how lease rates, residuals, and discounts change over time across Canada."
           />
         </div>
       </section>
 
-      {/* What we catch */}
+      {/* What we show you */}
       <section className="py-16 border-t border-gray-800">
         <h2 className="text-2xl font-bold text-white text-center mb-12">
-          What Dealerships Don&apos;t Want You to Know
+          What You&apos;ll See
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
           <Insight
-            title="Hidden Interest Rate"
-            detail="The 'money factor' is how dealers charge interest on a lease — and they're not required to tell you the rate. We calculate it from their own numbers."
+            title="Real APR / Money Factor"
+            detail="Dealers hide the interest rate. We reverse-engineer it from their numbers so you can see the actual cost of financing."
           />
           <Insight
-            title="Marked-Up Rates"
-            detail="Dealers get a 'buy rate' from the bank, then mark it up for profit. The difference can cost you $1,000+ over the lease. We expose the markup."
+            title="Residual Value Trends"
+            detail="Track how residual percentages change month-to-month across different makes and models."
           />
           <Insight
-            title="Junk Fee Padding"
-            detail="Paint protection, nitrogen tires, VIN etching, fabric guard — $50 worth of product sold for $2,000+. We flag every one."
+            title="What Others Paid"
+            detail="Compare your quote against signed deals for the same vehicle. Know if your price is competitive."
           />
           <Insight
-            title="Payment Manipulation"
-            detail="A low monthly payment means nothing if they buried a $5,000 down payment in the fine print. We normalize everything to show the true cost."
+            title="Junk Fee Detection"
+            detail="We flag paint protection, VIN etching, nitrogen fills, and 30+ other common junk fees."
           />
         </div>
       </section>
@@ -104,25 +223,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Lease Analyzer CTA */}
+      <section className="py-16 border-t border-gray-800">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+          <h2 className="text-2xl font-bold text-white mb-3">
+            Already signed? Analyze your lease.
+          </h2>
+          <p className="text-gray-400 mb-6 max-w-lg mx-auto">
+            Our lease analyzer reverse-engineers your deal&apos;s hidden
+            numbers, grades it A-F, and gives you specific negotiation tips.
+          </p>
+          <Link
+            href="/analyze"
+            className="inline-block py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors"
+          >
+            Analyze a Lease
+          </Link>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-16 border-t border-gray-800 text-center">
         <h2 className="text-2xl font-bold text-white mb-4">
-          Don&apos;t sign until you check.
+          Help others get a fair deal.
         </h2>
-        <p className="text-gray-400 mb-6">Free. Instant. No account needed.</p>
+        <p className="text-gray-400 mb-6">
+          Every submission helps build a transparent picture of the Canadian
+          lease market. Free. Anonymous. No account needed.
+        </p>
         <Link
-          href="/analyze"
+          href="/submit"
           className="inline-block py-3 px-8 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition-colors text-lg"
         >
-          Analyze My Lease Quote
+          Submit Your Deal
         </Link>
       </section>
 
       {/* Footer */}
       <footer className="py-8 border-t border-gray-800 text-center">
         <p className="text-sm text-gray-600">
-          LeaseCheck is a free tool. Not financial advice. Always do your own
-          research.
+          DealCheck Canada is a free community tool. Not financial advice.
+          Always do your own research.
         </p>
       </footer>
     </div>

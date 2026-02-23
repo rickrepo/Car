@@ -30,9 +30,9 @@ export default function AnalyzePage() {
           Analyze Your Lease
         </h1>
         <p className="text-gray-400">
-          Enter the numbers from your lease quote. We&apos;ll reverse-engineer the
-          hidden interest rate, flag junk fees, and tell you exactly what to
-          negotiate.
+          Grab your lease quote and fill in the matching fields below.
+          The labels match what&apos;s on your paperwork — alternate names are
+          shown in case yours uses different wording.
         </p>
       </div>
 

@@ -115,7 +115,7 @@ export function generateTips(analysis: PartialAnalysis): NegotiationTip[] {
     tips.push({
       priority: "high",
       title: "Reconsider your down payment",
-      detail: `You're putting $${input.downPayment.toLocaleString()} down. On a lease, if the car is totaled or stolen, you LOSE your down payment — insurance pays the leasing company, not you. Keep your down payment at $0 and accept a higher monthly payment instead. It's safer.`,
+      detail: `You're putting $${input.downPayment.toLocaleString()} down. On a lease, if the car is totaled or stolen, you LOSE your down payment — insurance pays the leasing company, not you. Keep your down payment at $0 and accept a higher payment instead. It's safer.`,
       potentialSavings: 0, // Not a monthly savings, but risk reduction
     });
   }

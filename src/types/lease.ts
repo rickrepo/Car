@@ -1,24 +1,25 @@
+export type PaymentFrequency = "monthly" | "biweekly";
+
 export interface LeaseInput {
-  // Vehicle
+  // Vehicle (always on the paperwork)
   msrp: number;
   sellingPrice: number;
 
-  // Cap cost adjustments
-  downPayment: number;
-  tradeInValue: number;
-  rebates: number;
-
-  // Fees (itemized)
-  fees: FeeItem[];
-
-  // Lease terms
-  monthlyPayment: number; // What the dealer quoted
+  // Lease terms (always on the paperwork)
+  paymentFrequency: PaymentFrequency;
+  paymentAmount: number; // What the dealer quoted (per period, pre-tax)
   leaseTerm: number; // months
   residualValue: number; // dollar amount
-  annualMileage: number;
 
-  // Due at signing (total out-of-pocket at signing)
-  dueAtSigning: number;
+  // Reductions (default 0 if none)
+  downPayment: number;
+  otherCredits: number; // trade-in + rebates + incentives combined
+
+  // Fees (optional — enables junk fee analysis)
+  fees: FeeItem[];
+
+  // Due on delivery (optional — for total cost calc only)
+  dueOnDelivery: number;
 }
 
 export interface FeeItem {
@@ -27,13 +28,17 @@ export interface FeeItem {
 }
 
 export interface LeaseAnalysis {
-  // Computed values
+  // Input context
+  paymentFrequency: PaymentFrequency;
+  dueOnDelivery: number;
+
+  // Computed values (all internally monthly)
   grossCapCost: number;
   adjustedCapCost: number;
   depreciation: number;
-  depreciationPayment: number;
-  rentCharge: number;
-  calculatedPayment: number;
+  depreciationPayment: number; // monthly
+  rentCharge: number; // monthly
+  calculatedPayment: number; // monthly
   moneyFactor: number;
   apr: number;
   residualPercent: number;
@@ -42,8 +47,14 @@ export interface LeaseAnalysis {
   onePercentRule: number; // monthly payment as % of MSRP
   sellingPriceDiscount: number; // % below MSRP
 
+  // Per-period display values (converted to user's chosen frequency)
+  perPeriodDepreciation: number;
+  perPeriodRentCharge: number;
+  perPeriodCalculatedPayment: number;
+  perPeriodEffectiveCost: number;
+
   // Payment discrepancy
-  paymentDifference: number; // dealer quote vs our math
+  paymentDifference: number;
   hasPaymentDiscrepancy: boolean;
 
   // Fee analysis
@@ -61,7 +72,7 @@ export interface LeaseAnalysis {
   tips: NegotiationTip[];
 
   // Potential savings
-  potentialSavingsMonthly: number;
+  potentialSavingsPerPeriod: number;
   potentialSavingsTotal: number;
 }
 
