@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { Deal } from "@/lib/database.types";
 import { PROVINCES, VEHICLE_MAKES } from "@/lib/canadian-data";
 import { formatCurrency, formatPercent } from "@/lib/lease-math";
+import {
+  DealWithSource,
+  loadAllDeals,
+  filterDeals,
+  computeStats,
+} from "@/lib/deals-loader";
 
 const DEALS_PER_PAGE = 25;
 
@@ -18,16 +22,9 @@ const gradeColor: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [allDeals, setAllDeals] = useState<DealWithSource[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
-  const [stats, setStats] = useState({
-    totalDeals: 0,
-    avgApr: 0,
-    avgResidual: 0,
-    avgDiscount: 0,
-  });
 
   // Filters
   const [make, setMake] = useState("");
@@ -45,71 +42,31 @@ export default function HomePage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 4 }, (_, i) => currentYear + 1 - i);
   const hasFilters = make || model || province || year || dealType || grade;
-  const totalPages = Math.ceil(totalCount / DEALS_PER_PAGE);
 
+  // Load all deals once on mount
   useEffect(() => {
-    fetchDeals();
-  }, [page, make, model, province, year, dealType, grade]);
-
-  useEffect(() => {
-    fetchStats();
+    loadAllDeals().then((deals) => {
+      setAllDeals(deals);
+      setLoading(false);
+    });
   }, []);
 
-  async function fetchStats() {
-    if (!isSupabaseConfigured()) return;
-
-    const { data } = await supabase
-      .from("deals")
-      .select("apr, residual_percent, discount_percent");
-
-    if (data && data.length > 0) {
-      const avg = (arr: number[]) =>
-        arr.length > 0
-          ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10
-          : 0;
-
-      setStats({
-        totalDeals: data.length,
-        avgApr: avg(data.map((d) => d.apr).filter((v): v is number => v != null)),
-        avgResidual: avg(
-          data.map((d) => d.residual_percent).filter((v): v is number => v != null)
-        ),
-        avgDiscount: avg(
-          data.map((d) => d.discount_percent).filter((v): v is number => v != null)
-        ),
-      });
-    }
-  }
-
-  async function fetchDeals() {
-    if (!isSupabaseConfigured()) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    let query = supabase
-      .from("deals")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(page * DEALS_PER_PAGE, (page + 1) * DEALS_PER_PAGE - 1);
-
-    if (make) query = query.eq("vehicle_make", make);
-    if (model) query = query.ilike("vehicle_model", `%${model}%`);
-    if (province) query = query.eq("province", province);
-    if (year) query = query.eq("vehicle_year", parseInt(year));
-    if (dealType) query = query.eq("deal_type", dealType);
-    if (grade) query = query.eq("overall_grade", grade);
-
-    const { data, count, error } = await query;
-
-    if (!error && data) {
-      setDeals(data as Deal[]);
-      setTotalCount(count || 0);
-    }
-    setLoading(false);
-  }
+  // Apply filters client-side
+  const filtered = filterDeals(allDeals, {
+    make,
+    model,
+    province,
+    year,
+    dealType,
+    grade,
+  });
+  const stats = computeStats(allDeals);
+  const totalCount = filtered.length;
+  const totalPages = Math.ceil(totalCount / DEALS_PER_PAGE);
+  const pageDeals = filtered.slice(
+    page * DEALS_PER_PAGE,
+    (page + 1) * DEALS_PER_PAGE
+  );
 
   function resetFilters() {
     setMake("");
@@ -124,8 +81,8 @@ export default function HomePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-5">
       {/* Compact header with inline stats */}
-      <div className="flex items-baseline justify-between mb-4">
-        <div className="flex items-baseline gap-4">
+      <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-baseline gap-4 flex-wrap">
           <h1 className="text-xl font-bold text-white">
             Canadian Lease Deals
           </h1>
@@ -247,14 +204,7 @@ export default function HomePage() {
         <div className="text-center py-20">
           <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : !isSupabaseConfigured() ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 text-sm mb-1">Database not connected</p>
-          <p className="text-gray-600 text-xs">
-            Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to see deals.
-          </p>
-        </div>
-      ) : deals.length === 0 ? (
+      ) : pageDeals.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 text-sm mb-2">
             {hasFilters ? "No deals match your filters." : "No deals yet."}
@@ -289,20 +239,21 @@ export default function HomePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/60">
-                  {deals.map((deal) => {
+                  {pageDeals.map((deal) => {
                     const freqLabel =
                       deal.payment_frequency === "biweekly" ? "/bw" : "/mo";
                     const date = new Date(deal.created_at).toLocaleDateString(
                       "en-CA",
                       { month: "short", day: "numeric" }
                     );
+                    const detailUrl = deal.source_url || `/deal?id=${deal.id}`;
 
                     return (
                       <tr
                         key={deal.id}
                         className="hover:bg-gray-900/50 transition-colors cursor-pointer"
                         onClick={() =>
-                          (window.location.href = `/deal?id=${deal.id}`)
+                          (window.location.href = detailUrl)
                         }
                       >
                         <td className="py-2.5 px-3">
@@ -319,6 +270,11 @@ export default function HomePage() {
                             {deal.province} &middot;{" "}
                             <span className="capitalize">{deal.deal_type}</span>
                           </div>
+                          {deal.source_platform && (
+                            <div className="text-gray-700 text-xs">
+                              via {deal.source_platform}
+                            </div>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 text-gray-400 hidden sm:table-cell">
                           {deal.province}
