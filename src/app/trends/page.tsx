@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Deal } from "@/lib/database.types";
 import { VEHICLE_MAKES, PROVINCES } from "@/lib/canadian-data";
+import { loadAllDeals, filterDeals } from "@/lib/deals-loader";
 import {
   AprTrendChart,
   ResidualTrendChart,
@@ -56,29 +56,22 @@ export default function TrendsPage() {
   }, [make, province]);
 
   async function fetchTrends() {
-    if (!isSupabaseConfigured()) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
 
-    let query = supabase
-      .from("deals")
-      .select("*")
-      .order("created_at", { ascending: true });
+    const allDeals = await loadAllDeals();
+    const deals = filterDeals(allDeals, {
+      make: make || undefined,
+      province: province || undefined,
+    });
 
-    if (make) query = query.eq("vehicle_make", make);
-    if (province) query = query.eq("province", province);
-
-    const { data, error } = await query;
-
-    if (error || !data) {
+    if (deals.length === 0) {
+      setMonthlyTrends([]);
+      setDiscountDist([]);
+      setTopDeals([]);
+      setStats({ totalDeals: 0, avgApr: 0, avgResidual: 0, avgDiscount: 0 });
       setLoading(false);
       return;
     }
-
-    const deals = data as Deal[];
 
     // Compute monthly trends
     const byMonth = new Map<
@@ -187,13 +180,13 @@ export default function TrendsPage() {
     }));
 
     // Summary stats
-    const allAprs = deals.map((d) => d.apr).filter((a) => a != null);
+    const allAprs = deals.map((d) => d.apr).filter((a): a is number => a != null);
     const allResiduals = deals
       .map((d) => d.residual_percent)
-      .filter((r) => r != null);
+      .filter((r): r is number => r != null);
     const allDiscounts = deals
       .map((d) => d.discount_percent)
-      .filter((d) => d != null);
+      .filter((d): d is number => d != null);
 
     const avg = (arr: number[]) =>
       arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
@@ -261,18 +254,12 @@ export default function TrendsPage() {
           <div className="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-gray-400 mt-4">Loading trends...</p>
         </div>
-      ) : !isSupabaseConfigured() ? (
-        <div className="text-center py-16 bg-gray-900 border border-gray-800 rounded-xl">
-          <p className="text-gray-400 mb-2">Database not connected</p>
-          <p className="text-sm text-gray-500">
-            Configure Supabase environment variables to see trends.
-          </p>
-        </div>
       ) : stats.totalDeals === 0 ? (
         <div className="text-center py-16 bg-gray-900 border border-gray-800 rounded-xl">
           <p className="text-gray-400 mb-2">No data yet</p>
           <p className="text-sm text-gray-500">
-            Submit some deals to start seeing trends!
+            Deals will appear here once the scraper collects data from Reddit
+            and Leasehackr.
           </p>
         </div>
       ) : (

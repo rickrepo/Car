@@ -3,12 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Deal } from "@/lib/database.types";
 import { getProvinceLabel } from "@/lib/canadian-data";
 import { formatCurrency, formatPercent } from "@/lib/lease-math";
 import { analyzeLease } from "@/lib/lease-math";
 import { LeaseInput } from "@/types/lease";
+import { findDealById, findSimilarDeals, DealWithSource } from "@/lib/deals-loader";
 
 const gradeColors: Record<string, string> = {
   A: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -22,41 +22,24 @@ function DealDetailContent() {
   const searchParams = useSearchParams();
   const dealId = searchParams.get("id");
 
-  const [deal, setDeal] = useState<Deal | null>(null);
+  const [deal, setDeal] = useState<DealWithSource | null>(null);
   const [loading, setLoading] = useState(true);
-  const [similarDeals, setSimilarDeals] = useState<Deal[]>([]);
+  const [similarDeals, setSimilarDeals] = useState<DealWithSource[]>([]);
 
   useEffect(() => {
     if (dealId) fetchDeal(dealId);
   }, [dealId]);
 
   async function fetchDeal(id: string) {
-    if (!isSupabaseConfigured()) {
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("deals")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (!error && data) {
-      const d = data as Deal;
+    const d = await findDealById(id);
+    if (d) {
       setDeal(d);
-
-      // Fetch similar deals (same make/model)
-      const { data: similar } = await supabase
-        .from("deals")
-        .select("*")
-        .eq("vehicle_make", d.vehicle_make)
-        .eq("vehicle_model", d.vehicle_model)
-        .neq("id", id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (similar) setSimilarDeals(similar as Deal[]);
+      const similar = await findSimilarDeals(
+        d.vehicle_make,
+        d.vehicle_model,
+        id
+      );
+      setSimilarDeals(similar);
     }
     setLoading(false);
   }
